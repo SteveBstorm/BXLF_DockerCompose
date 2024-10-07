@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pgdb
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: test1234
+      POSTGRES_DB: dockerDB
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - flask-network
+    ports:
+      - "50000:5432"
+    # restart: unless-stopped
+    # #par défaut : no
+    # #always : redémarre le service dés qu'il s'arrête
+    # # et quoi qu'il arrive
+    # #unless-stopped : pareil que always, jusqu'a arrêt manuel
+    # #on-failure[xx] : xx retry
+
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: '512M'
+    #     reservations:
+    #       #Alloué par défaut au démarrage du container
+    #       cpus: '0.5'
+    #       memory: '256M'
+
+  flask-app:
+    build: ./pyapp
+    container_name: flaskapp
+    environment:
+      FLASK_APP: app.py
+      FLASK_RUN_HOST: 0.0.0.0
+      DATABASE_URL: postgresql://root:test1234@pgdb:5432/dockerDB
+    volumes:
+      - ./pyapp:/app
+    networks:
+      - flask-network
+    depends_on:
+      - postgres
+    ports:
+      - "5000:5000"
+networks:
+  flask-network:
+    driver: bridge
